@@ -1,0 +1,17 @@
+# JMeter runtime logs
+*.log
+
+# Generated JMeter HTML reports
+reports/
+
+# Temporary files
+*.tmp
+*.bak
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE settings
+.idea/
+.vscode/
