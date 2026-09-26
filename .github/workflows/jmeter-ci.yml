@@ -120,12 +120,31 @@ jobs:
 
           echo "JMeter smoke test PASSED"
 
+      - name: Run JMeter baseline test
+        run: |
+          jmeter -n \
+            -t tests/api-baseline.jmx \
+            -l ci-results/baseline-results.jtl \
+            -j ci-results/baseline-jmeter.log
+
+      - name: Validate JMeter baseline test results
+        run: |
+          if grep -q ',false,' ci-results/baseline-results.jtl; then
+            echo "JMeter baseline test FAILED"
+            cat ci-results/baseline-results.jtl
+            exit 1
+          fi
+
+          echo "JMeter baseline test PASSED"
+
       - name: Upload JMeter results
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: jmeter-smoke-results
+          name: jmeter-test-results
           path: ci-results/
           retention-days: 7
+
+        
 
     
