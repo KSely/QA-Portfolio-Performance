@@ -1,0 +1,131 @@
+name: JMeter CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  jmeter-tests:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: qa_portfolio
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d qa_portfolio"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Checkout application under test
+        uses: actions/checkout@v5
+        with:
+          repository: KSely/QA-Automation-Portfolio
+          path: qa-automation-portfolio
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: qa-automation-portfolio/package-lock.json
+
+      - name: Install application dependencies
+        working-directory: qa-automation-portfolio
+        run: npm ci
+
+      - name: Create application environment
+        working-directory: qa-automation-portfolio
+        run: |
+          cp .env.example .env
+          sed -i 's/DB_PASSWORD=your_password/DB_PASSWORD=postgres/' .env
+
+      - name: Create database schema
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d qa_portfolio -c "
+          CREATE TABLE IF NOT EXISTS messages (
+            id SERIAL PRIMARY KEY,
+            name VARCHAR(100) NOT NULL,
+            email VARCHAR(255) NOT NULL,
+            message TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          );"
+
+      - name: Start application
+        working-directory: qa-automation-portfolio
+        run: |
+          npm start > app.log 2>&1 &
+          echo $! > app.pid
+
+      - name: Wait for application
+        run: |
+          for i in {1..30}; do
+            if curl -f http://localhost:3000/api/status; then
+              echo "Application is ready"
+              exit 0
+            fi
+            echo "Waiting for application..."
+            sleep 2
+          done
+
+          echo "Application failed to start"
+          cat qa-automation-portfolio/app.log
+          exit 1
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Install Apache JMeter
+        run: |
+          JMETER_VERSION=5.6.3
+          curl -fsSL "https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-${JMETER_VERSION}.tgz" -o jmeter.tgz
+          tar -xzf jmeter.tgz
+          echo "$PWD/apache-jmeter-${JMETER_VERSION}/bin" >> "$GITHUB_PATH"
+
+      - name: Verify JMeter installation
+        run: jmeter -v
+
+      - name: Run JMeter smoke test
+        run: |
+          mkdir -p ci-results
+          jmeter -n \
+            -t tests/api-smoke.jmx \
+            -l ci-results/smoke-results.jtl \
+            -j ci-results/jmeter.log
+
+      - name: Validate JMeter smoke test results
+        run: |
+          if grep -q ',false,' ci-results/smoke-results.jtl; then
+            echo "JMeter smoke test FAILED"
+            cat ci-results/smoke-results.jtl
+            exit 1
+          fi
+
+          echo "JMeter smoke test PASSED"
+
+      - name: Upload JMeter results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jmeter-smoke-results
+          path: ci-results/
+          retention-days: 7
+
+    
