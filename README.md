@@ -62,7 +62,7 @@ The performance test suite currently includes:
 - Response content validation in the smoke test
 - Raw JTL result collection
 - JMeter HTML performance reports
-- CSV stress-test summaries
+- Canonical raw JTL evidence and historical CSV summaries
 - Performance metric analysis using:
   - Average response time
   - Median response time
@@ -89,16 +89,18 @@ QA-Portfolio-Performance
 │   └── api-stress-1000.jmx
 │
 ├── results
+│   ├── README.md
 │   ├── baseline-results.jtl
 │   ├── load-results.jtl
 │   ├── stress-100-results.jtl
-│   ├── stress-100-summary.csv
 │   ├── stress-200-results.jtl
-│   ├── stress-200-summary.csv
 │   ├── stress-500-results.jtl
-│   ├── stress-500-summary.csv
 │   ├── stress-1000-results.jtl
-│   └── stress-1000-summary.csv
+│   ├── stress-1000-summary.csv
+│   └── historical
+│       ├── stress-100-summary.csv
+│       ├── stress-200-summary.csv
+│       └── stress-500-summary.csv
 │
 ├── reports
 │   ├── baseline-report
@@ -356,7 +358,9 @@ The reports are stored in the `reports` directory, with a separate dashboard for
 
 ## Performance Test Results
 
-The following results were collected from the JMeter HTML reports generated after the final non-GUI test executions.
+The committed raw JTL files are the canonical evidence for these results. The metrics below use JMeter 5.6.3 HTML report statistics generated from those JTL files. See the [performance result evidence guide](results/README.md) for scenario mappings, recovered UTC execution timestamps, and known provenance limitations.
+
+The 100-, 200-, and 500-user CSV summaries are retained under `results/historical/` as evidence from different executions with unknown exact run provenance. The 1,000-user CSV likely represents the same execution as its canonical JTL, but its provenance is not confirmed and its report format uses different rounding or percentile calculations.
 
 | Test | Samples | Avg | Median | p90 | p95 | p99 | Max | Error Rate | Throughput |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
@@ -626,7 +630,7 @@ This project demonstrates practical performance testing skills including:
 - Request pacing using JMeter timers
 - Non-GUI performance test execution
 - JTL result collection
-- CSV result summaries
+- Canonical JTL evidence and historical CSV result summaries
 - JMeter HTML report generation
 - Average and median response-time analysis
 - p90, p95, and p99 percentile analysis
