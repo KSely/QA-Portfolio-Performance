@@ -61,19 +61,6 @@ jobs:
           cp .env.example .env
           sed -i 's/DB_PASSWORD=your_password/DB_PASSWORD=postgres/' .env
 
-      - name: Create database schema
-        env:
-          PGPASSWORD: postgres
-        run: |
-          psql -h localhost -U postgres -d qa_portfolio -c "
-          CREATE TABLE IF NOT EXISTS messages (
-            id SERIAL PRIMARY KEY,
-            name VARCHAR(100) NOT NULL,
-            email VARCHAR(255) NOT NULL,
-            message TEXT NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-          );"
-
       - name: Start application
         working-directory: qa-automation-portfolio
         run: |
